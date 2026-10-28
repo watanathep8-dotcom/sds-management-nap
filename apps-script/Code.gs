@@ -744,6 +744,46 @@ function getSdsFile(fileId) {
   };
 }
 
+/**
+ * Removes SDS rows that were imported from the GitHub catalog (ids 1001-1999)
+ * but are no longer in it, e.g. after the catalog was reduced to the chemical
+ * register. Rows added from the website (other ids) are never touched. Run it
+ * from the Apps Script editor (select the function, press Run).
+ */
+function removeRecordsMissingFromCatalog() {
+  assertAdmin_();
+  var sourceUrl = "https://raw.githubusercontent.com/watanathep8-dotcom/sds-management-nap/main/docs/index.html";
+  var response = UrlFetchApp.fetch(sourceUrl, { muteHttpExceptions: true });
+  if (response.getResponseCode() !== 200) {
+    throw new Error("โหลด catalog จาก GitHub ไม่สำเร็จ: HTTP " + response.getResponseCode());
+  }
+  var dataMatch = response.getContentText().match(/const defaultData\s*=\s*(\[[\s\S]*?\])\s*;/);
+  if (!dataMatch) throw new Error("ไม่พบ defaultData ใน GitHub catalog");
+  var keep = {};
+  JSON.parse(dataMatch[1]).forEach(function(seed) { keep[String(seed.id)] = true; });
+  if (Object.keys(keep).length < 50) throw new Error("catalog มีรายการน้อยผิดปกติ ยกเลิกการลบ");
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var sheet = getSheet_();
+    var values = readDataRows_(sheet);
+    var removed = [];
+    for (var i = values.length - 1; i >= 0; i--) {
+      var id = String(values[i][0] || "");
+      var n = Number(id);
+      if (n >= 1001 && n <= 1999 && !keep[id]) {
+        removed.push(id + " " + values[i][1]);
+        sheet.deleteRow(i + 2);
+      }
+    }
+    if (removed.length) markDataChanged_(null, true);
+    return { removed: removed.length, items: removed.reverse(), totalInSheet: listSds().length };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 function saveSds(record, fileData, password) {
   var lock = LockService.getScriptLock();
   lock.waitLock(30000);

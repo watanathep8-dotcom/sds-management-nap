@@ -9,7 +9,7 @@ Run:  python tools/build-nap-catalog.py [register.xlsx] [pdf-folder]
 The PDF <-> register matching is the reviewed table PDF_MAP below (file names
 are not consistent with the register names, several PDFs are scans, two are
 swapped: "17.Monoammonium Phosphate.pdf" is the MKP SDS and "18.Monopotassium
-Phosphate.pdf" the MAP SDS). PDFs not in the register become extra records.
+Phosphate.pdf" the MAP SDS). PDFs not in the register are not imported.
 """
 import io
 import json
@@ -88,28 +88,9 @@ PDF_MAP = {
     128: {"en": "48.Zinc Sulphate Monohydrate (Feed Grade).pdf"},
 }
 
-# PDFs whose chemical is not in the register: added as extra records (after the register)
-EXTRA = [
-    ("Product", "Cannaboost Four", {"en": "Cannaboost Four.pdf"}),
-    ("Product", "Cannaboost Three (7-14-34)", {"en": "Cannaboost Three (7-14-34).pdf"}),
-    ("Product", "Cannaboost Two (15-5-20)", {"en": "Cannaboost Two (15-5-20).pdf"}),
-    ("Product", "Excellent Mix Calcium Boron", {"en": "Excellent Mix Calcium Boron.pdf"}),
-    ("Product", "Humus Kali", {"en": "Humus Kali.pdf"}),
-    ("Product", "MR.K-One", {"en": "MR.K-One.pdf"}),
-    ("Product", "Power Plus ST", {"en": "Power Plus ST.pdf"}),
-    ("Product", "Ready Mix 17.5%Fe", {"en": "Ready Mix 17.5%Fe.pdf"}),
-    ("Product", "Ready Mix Combi One", {"en": "Ready Mix Combi One.pdf"}),
-    ("Product", "Super Nitrate Balancer", {"en": "Super Nitrate Balancer.pdf"}),
-    ("อื่น ๆ (ไม่มีในทะเบียน)", "Bactercid B20", {"en": "3.Bactercid B20.pdf"}),
-    ("อื่น ๆ (ไม่มีในทะเบียน)", "BIOPOL VR 20", {"th": "4.BIOPOL VR 20.pdf"}),
-    ("อื่น ๆ (ไม่มีในทะเบียน)", "Glucose Syrup", {"en": "11.Glucose Syrup.pdf"}),
-    ("อื่น ๆ (ไม่มีในทะเบียน)", "Etifert B-20", {"th": "75.ETIFERT-B20.pdf", "en": "25.Etifert-B20.pdf"}),
-    ("อื่น ๆ (ไม่มีในทะเบียน)", "MAX SeaSailer", {"en": "39.MAX SeaSailer.pdf"}),
-    ("อื่น ๆ (ไม่มีในทะเบียน)", "Magnesium Oxide", {"en": "42.Magnesium Oxide.pdf"}),
-    ("อื่น ๆ (ไม่มีในทะเบียน)", "REAX 88A (รีแอกซ์)", {"en": "55.REAX 88A (รีแอกซ์).pdf"}),
-    ("อื่น ๆ (ไม่มีในทะเบียน)", "Methanol (เมทิล แอลกอฮอล์)", {"th": "67.Methanol เมทิล แอลกอฮอล์.pdf"}),
-    ("อื่น ๆ (ไม่มีในทะเบียน)", "Ethylene Glycol", {"th": "71.Ethylene Glycol.pdf"}),
-]
+# The site lists exactly the chemicals of the register (2026-10-28: the user asked
+# to follow the file; PDFs of chemicals not in the register are not imported).
+EXTRA = []
 
 # Register pictogram columns D..J -> the app's pictogram files
 PICTO = ["pictogram-4.png", "pictogram-5.png", "pictogram-6.png", "pictogram-7.png",
@@ -269,7 +250,7 @@ def main():
     unused = [f for f in all_pdfs if f not in set(used.values())]
     print("records:", len(data), "(register %d + extra %d)" % (len(data) - len(EXTRA), len(EXTRA)))
     print("with PDF:", sum(1 for r in data if r["hasPdf"]), "library files:", len(used))
-    print("PDFs not used (duplicates of a used SDS):", len(unused))
+    print("PDFs not used (duplicates, or chemical not in the register):", len(unused))
     for f in unused:
         print("  -", f)
 
